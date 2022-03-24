@@ -1,20 +1,59 @@
+import os, glob
 from argparse import ArgumentParser
-from auto_sub import AutoSub
+from auto_sub import AutoSub, show_suported_languages
 
 parser = ArgumentParser()
-parser.add_argument("-f", "--file", dest="filename",
-                    help="write report to FILE", metavar="FILE", required=True)
+
+parser.add_argument("-f", "--file",
+                    dest="filename",
+                    help="write report to FILE",
+                    metavar="FILE",
+                    required=False)
+
+parser.add_argument("--languages",
+                    dest="languages",
+                    action="store_true",
+                    help="print available languages")
+
+parser.add_argument("--has-lang",
+                    dest="has_lang",
+                    type=str,
+                    help="print if the given country has language support")
+
 parser.add_argument("--from-language",
                     dest="from_language",
                     help="Video language")
+
 parser.add_argument("--to-language",
                     dest="to_language",
                     help="Subtitle language")
+
+parser.add_argument("-c", "--cleanup",
+                    dest="cleanup",
+                    action="store_true",
+                    help="clean tmp folder")
+
 parser.add_argument("-q", "--quiet",
-                    action="store_false", dest="verbose", default=False,
+                    dest="verbose",
+                    action="store_false",
                     help="don't print status messages to stdout")
 
 args = parser.parse_args()
 
-auto_sub = AutoSub(args.filename)
-auto_sub.generate_subtitles()
+if args.filename:
+  auto_sub = AutoSub(args.filename, verbose=args.verbose)
+  auto_sub.generate_subtitles()
+
+elif args.cleanup:
+  files = glob.glob('/tmp/.*')
+  for f in files:
+      os.remove(f)
+
+elif args.languages:
+  show_suported_languages()
+
+elif args.has_lang:
+  show_suported_languages(args.has_lang)
+
+else:
+  print('Unknown params, please try again. Check -h for help.')

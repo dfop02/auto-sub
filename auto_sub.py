@@ -1,8 +1,11 @@
 import os
+import sys
 import time
 import datetime
+import logging
 import speech_recognition as sr
 import moviepy.editor as mp
+from textwrap import wrap
 from pydub import AudioSegment
 from split_on_silence_with_timing import split_on_silence_with_timing
 from deep_translator import GoogleTranslator
@@ -15,16 +18,12 @@ class AutoSub:
     to_lang    = None
     verbose    = True
 
-    def __init__(self, video_path, from_lang='ja', to_lang='pt'):
+    def __init__(self, video_path, from_lang='ja', to_lang='pt', verbose=True):
         self.video_name = Path(video_path).stem
         self.audio      = self.get_audio_from_video(video_path)
         self.from_lang  = from_lang
         self.to_lang    = to_lang
-
-    def show_suported_languages(self):
-        langs_dict = GoogleTranslator().get_supported_languages(as_dict=True)
-        for country, code in langs_dict:
-            print(country, '->', code)
+        self.verbose    = verbose
 
     def get_audio_from_video(self, video):
         # open video as a file
@@ -32,7 +31,7 @@ class AutoSub:
         # Set audio path
         audio_path = "tmp/{}.wav".format(self.video_name)
         # Remove audio from video and save as a wav file
-        clip.audio.write_audiofile(audio_path)
+        clip.audio.write_audiofile(audio_path, logger='bar' if self.verbose else None)
         # open the audio file stored in the local system as a wav file.
         return AudioSegment.from_wav(audio_path)
 
@@ -42,7 +41,7 @@ class AutoSub:
         # open a file where we will concatenate and store the subtitle text
         fh = open("tmp/{}.srt".format(self.video_name), "w+")
 
-        print("Creating chunks...") if self.verbose else None
+        print("Creating chunks...", end='') if self.verbose else None
         start = time.perf_counter() if self.verbose else None
 
         # split track where silence is 0.5 seconds or more and get chunks
@@ -68,7 +67,8 @@ class AutoSub:
             with_timing = True
         )
 
-        print(f"Completed chunks creation in {time.perf_counter() - start} seconds") if self.verbose else None
+        end = time.perf_counter() if self.verbose else None
+        print(f'Completed\nChunks created in {end - start:2.f} seconds') if self.verbose else None
 
         # create a directory to store the audio chunks.
         os.makedirs('tmp/audio_chunks', exist_ok=True)
@@ -88,6 +88,7 @@ class AutoSub:
         for start_clip, end_clip, chunk in chunks:
             # Ignore chunk with less than minimun size
             if len(chunk) < minimum_chunk_size:
+                total_chunks -= 1
                 continue
 
             # export audio chunk and save it in
@@ -104,9 +105,9 @@ class AutoSub:
 
             # recognize the chunk
             with sr.AudioFile(filename) as source:
-                # remove ambient noise
+                # TO-DO: remove ambient noise not working property, possibly should remove it
                 # recognizer.adjust_for_ambient_noise(source, duration=0.5)
-                audio_listened = rrecognizer.listen(source)
+                audio_listened = recognizer.listen(source)
 
             try:
                 # try converting it to text
@@ -151,27 +152,68 @@ class AutoSub:
         return translated_text
 
     def write_to_file(self, file_handle, inferred_text, line_count, limits):
-        """Write the inferred text to SRT file
+        '''
+        Write the inferred text to SRT file
         Follows a specific format for SRT files
         Args:
             file_handle : SRT file handle
             inferred_text : text to be written
             line_count : subtitle line count
             limits : starting and ending times for text
-        """
+        '''
 
-        d = str(datetime.timedelta(seconds=float(limits[0])))
-        try:
-            from_dur = "0" + str(d.split(".")[0]) + "," + str(d.split(".")[-1][:2])
-        except:
-            from_dur = "0" + str(d) + "," + "00"
+        default_delay = 1
 
-        d = str(datetime.timedelta(seconds=float(limits[1])))
-        try:
-            to_dur = "0" + str(d.split(".")[0]) + "," + str(d.split(".")[-1][:2])
-        except:
-            to_dur = "0" + str(d) + "," + "00"
+        # TO-DO: Fix huge texts in long time to smooth it on screen while time pass
+        # if self.check_if_should_break_text:
+        #     text = self.adjust_text(text)
 
-        file_handle.write(str(line_count) + "\n")
-        file_handle.write(from_dur + " --> " + to_dur + "\n")
-        file_handle.write(inferred_text + "\n\n")
+        start_at, end_at = [limit + default_delay for limit in limits]
+
+        from_dur = self.seconds_to_srt_timestamp(start_at + default_delay)
+        to_dur   = self.seconds_to_srt_timestamp(end_at + default_delay)
+
+        file_handle.write(f'{str(line_count)}\n')
+        file_handle.write(f'{from_dur} --> {to_dur}\n')
+        file_handle.write(f'{inferred_text}\n\n')
+
+    def check_if_should_break_text(self, text, start_at, end_at):
+        duration     = end_at - end_at
+        min_duration = 10
+        max_text_len = 20
+
+        return True if duration > min_duration and len(text) > max_text_len else False
+
+    def seconds_to_srt_timestamp(self, seconds):
+        '''
+        Convert seconds to 'HH:MM:SS.FFF' SRT format
+        Args:
+            seconds : time in seconds
+        '''
+
+        m, s = divmod(seconds, 60)
+        h, m = divmod(m, 60)
+
+        return '{:02.0f}:{:02.0f}:{:06.3f}'.format(h, m, s)
+
+    def adjust_text(self, text):
+        '''
+        Wrap text to avoid very long texts
+        Args:
+            text : text of subtitle
+        '''
+
+        caracter_limit = 60
+        return '\n'.join(wrap(text, caracter_limit))
+
+def show_suported_languages(search_country=None):
+    langs_dict = GoogleTranslator().get_supported_languages(as_dict=True)
+
+    if search_country:
+        if langs_dict[search_country] != None:
+            print(search_country, '->', langs_dict[search_country])
+        else:
+            print('language not supported')
+    else:
+        for country, code in langs_dict.items():
+            print(country, '->', code)
