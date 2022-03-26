@@ -22,15 +22,20 @@ parser.add_argument("--has-lang",
 
 parser.add_argument("--from-language",
                     dest="from_language",
+                    type=str,
+                    default='ja',
                     help="Video language")
 
 parser.add_argument("--to-language",
                     dest="to_language",
+                    type=str,
+                    default='pt',
                     help="Subtitle language")
 
 parser.add_argument("--srt-path",
                     dest="srt_path",
                     type=str,
+                    default='tmp',
                     help="Path to save srt instead of tmp folder")
 
 parser.add_argument("-c", "--cleanup",
@@ -46,16 +51,21 @@ parser.add_argument("-q", "--quiet",
 args = parser.parse_args()
 
 if args.filename:
-    auto_sub = AutoSub(args.filename, verbose=args.verbose)
-    auto_sub.generate_subtitles()
+    try:
+        auto_sub = AutoSub(args.filename, from_lang=args.from_language, to_lang=args.to_language, srt_path=args.srt_path, verbose=args.verbose)
+        auto_sub.generate_subtitles()
+    except KeyboardInterrupt:
+        print('\nAuto-sub cancelled.')
 
 elif args.cleanup:
+    print("Cleaning tmp...", end='', flush=True)
     files = glob.glob('tmp/*')
     for file in files:
         if os.path.isfile(file):
             os.remove(file)
         else:
             shutil.rmtree(file)
+    print('Done.')
 
 elif args.languages:
     show_suported_languages()

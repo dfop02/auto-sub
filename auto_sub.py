@@ -41,7 +41,7 @@ class AutoSub:
         if srt_path:
             if srt_path[-1] == '/':
                 return srt_path[:-1]
-            elif srt_path[-4:] == '.srt'
+            elif srt_path[-4:] == '.srt':
                 return '/'.join(srt_path.split('/')[:-1])
             else:
                 return srt_path
@@ -54,8 +54,9 @@ class AutoSub:
         # open a file where we will concatenate and store the subtitle text
         fh = open("{}/{}.srt".format(self.srt_path, self.video_name), "w+")
 
-        print("Creating chunks...", end='') if self.verbose else None
-        start = time.perf_counter() if self.verbose else None
+        if self.verbose:
+            print("Creating chunks...", end='', flush=True)
+            start = time.perf_counter()
 
         # split track where silence is 0.5 seconds or more and get chunks
         chunks = split_on_silence_with_timing(self.audio,
@@ -80,14 +81,20 @@ class AutoSub:
             with_timing = True
         )
 
-        end = time.perf_counter() if self.verbose else None
-        print(f'Done.\nChunks created in {(end - start):.2f} seconds') if self.verbose else None
+        if self.verbose:
+            end = time.perf_counter()
+            print(f'Done.\nChunks created in {(end - start):.2f} seconds\n')
 
         # create a directory to store the audio chunks.
         os.makedirs('tmp/audio_chunks', exist_ok=True)
 
-        # create a speech recognition object
+        # create and configure a speech recognition object
         recognizer = sr.Recognizer()
+        recognizer.energy_threshold = 50
+        recognizer.dynamic_energy_threshold = False
+
+        # TO-DO: remove ambient noise not working property, possibly should remove it
+        # recognizer.adjust_for_ambient_noise(source, duration=0.5)
 
         # prepare statistics data
         total_chunks       = len(chunks)
@@ -118,18 +125,17 @@ class AutoSub:
 
             # recognize the chunk
             with sr.AudioFile(filename) as source:
-                # TO-DO: remove ambient noise not working property, possibly should remove it
-                # recognizer.adjust_for_ambient_noise(source, duration=0.5)
                 audio_listened = recognizer.listen(source)
 
             try:
                 # try converting it to text
+                # TO-DO: Add support to from_language variable
                 rec    = recognizer.recognize_google(audio_listened, language="ja-JP")
                 rec_pt = self.jap_to_pt(rec)
                 text   = rec_pt if rec_pt else rec
                 print("  " + text) if self.verbose else None
                 self.write_to_file(fh, text, line_count, (start_clip, end_clip))
-                valid_recognize+=1
+                valid_recognize += 1
                 line_count += 1
 
             # catch any errors.
@@ -155,6 +161,11 @@ class AutoSub:
             )
 
     def jap_to_pt(self, text):
+        '''
+        Translate the source language (video) to target (srt) using Google Translator
+        Args:
+            text : text to be translated
+        '''
         translated_text = None
 
         try:

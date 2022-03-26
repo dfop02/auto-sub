@@ -20,6 +20,10 @@ python main.py --file ~/Desktop/my_anime_eps1.mp4 --from-language ja --to-langua
 
 The script will generate files into tmp folder inside projet. First create a .wav file with audio of video, then analisys and create separeted chunks of each non-silence detection. Now we check each chunk, recognize if there is speak, translate to target language and then finally write it on srt file.
 
+After copy the srt and finish with it, you can cleanup the tmp folder easly just run
+```bash
+python main.py --cleanup
+```
 
 ## TO-DO
 Here I'm separating the to-do list that still need work on
@@ -30,4 +34,16 @@ Fixes
 - Huge texts at once for long time instead showing slowly parts of text in small times
 
 Features
-- Add flag to user choose where save .srt file
+- Merge speech recognition support with translate support. [List of supported languages on speech_recognition](https://stackoverflow.com/a/14302134/17274446)
+
+## Contribute
+
+You can contribue with this project, just fork it, make a branch and open a PR.
+
+## Authors
+
+* [Diogo Fernandes](https://github.com/dfop02)
+
+## License
+
+This project is licensed under the GNU License - see the [LICENSE](LICENSE) file for details
