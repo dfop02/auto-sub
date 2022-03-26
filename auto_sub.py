@@ -16,13 +16,15 @@ class AutoSub:
     audio      = None
     from_lang  = None
     to_lang    = None
+    srt_path   = None
     verbose    = True
 
-    def __init__(self, video_path, from_lang='ja', to_lang='pt', verbose=True):
+    def __init__(self, video_path, from_lang='ja', to_lang='pt', srt_path='tmp', verbose=True):
         self.video_name = Path(video_path).stem
         self.audio      = self.get_audio_from_video(video_path)
         self.from_lang  = from_lang
         self.to_lang    = to_lang
+        self.srt_path   = self.format_srt_path(srt_path)
         self.verbose    = verbose
 
     def get_audio_from_video(self, video):
@@ -35,11 +37,22 @@ class AutoSub:
         # open the audio file stored in the local system as a wav file.
         return AudioSegment.from_wav(audio_path)
 
+    def format_srt_path(self, srt_path):
+        if srt_path:
+            if srt_path[-1] == '/':
+                return srt_path[:-1]
+            elif srt_path[-4:] == '.srt'
+                return '/'.join(srt_path.split('/')[:-1])
+            else:
+                return srt_path
+        else:
+            return None
+
     # a function that splits the audio file into chunks
     # and applies speech recognition for create subtitles
     def generate_subtitles(self):
         # open a file where we will concatenate and store the subtitle text
-        fh = open("tmp/{}.srt".format(self.video_name), "w+")
+        fh = open("{}/{}.srt".format(self.srt_path, self.video_name), "w+")
 
         print("Creating chunks...", end='') if self.verbose else None
         start = time.perf_counter() if self.verbose else None
@@ -68,7 +81,7 @@ class AutoSub:
         )
 
         end = time.perf_counter() if self.verbose else None
-        print(f'Completed\nChunks created in {end - start:2.f} seconds') if self.verbose else None
+        print(f'Done.\nChunks created in {(end - start):.2f} seconds') if self.verbose else None
 
         # create a directory to store the audio chunks.
         os.makedirs('tmp/audio_chunks', exist_ok=True)
@@ -162,16 +175,14 @@ class AutoSub:
             limits : starting and ending times for text
         '''
 
-        default_delay = 1
-
         # TO-DO: Fix huge texts in long time to smooth it on screen while time pass
         # if self.check_if_should_break_text:
         #     text = self.adjust_text(text)
 
-        start_at, end_at = [limit + default_delay for limit in limits]
+        start_at, end_at = [limit for limit in limits]
 
-        from_dur = self.seconds_to_srt_timestamp(start_at + default_delay)
-        to_dur   = self.seconds_to_srt_timestamp(end_at + default_delay)
+        from_dur = self.seconds_to_srt_timestamp(start_at)
+        to_dur   = self.seconds_to_srt_timestamp(end_at)
 
         file_handle.write(f'{str(line_count)}\n')
         file_handle.write(f'{from_dur} --> {to_dur}\n')

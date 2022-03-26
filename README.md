@@ -12,6 +12,12 @@ You can use the script by passing the video path to script:
 python main.py -f ~/Desktop/my_personal_show_eps1.mp4
 ```
 
+You also can set a from_language (video) and to_language (srt). If you no set langs then the default is from japanese to portuguese for now.
+
+```bash
+python main.py --file ~/Desktop/my_anime_eps1.mp4 --from-language ja --to-language en
+```
+
 The script will generate files into tmp folder inside projet. First create a .wav file with audio of video, then analisys and create separeted chunks of each non-silence detection. Now we check each chunk, recognize if there is speak, translate to target language and then finally write it on srt file.
 
 
@@ -22,7 +28,6 @@ Fixes
 - Improve the voice recognize
 - Small texts for a very fast time instead showing a whole sentence for few seconds
 - Huge texts at once for long time instead showing slowly parts of text in small times
-- cleanup flag doesnt work well
 
 Features
 - Add flag to user choose where save .srt file

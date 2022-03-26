@@ -1,4 +1,4 @@
-import os, glob
+import os, glob, shutil
 from argparse import ArgumentParser
 from auto_sub import AutoSub, show_suported_languages
 
@@ -28,6 +28,11 @@ parser.add_argument("--to-language",
                     dest="to_language",
                     help="Subtitle language")
 
+parser.add_argument("--srt-path",
+                    dest="srt_path",
+                    type=str,
+                    help="Path to save srt instead of tmp folder")
+
 parser.add_argument("-c", "--cleanup",
                     dest="cleanup",
                     action="store_true",
@@ -41,19 +46,22 @@ parser.add_argument("-q", "--quiet",
 args = parser.parse_args()
 
 if args.filename:
-  auto_sub = AutoSub(args.filename, verbose=args.verbose)
-  auto_sub.generate_subtitles()
+    auto_sub = AutoSub(args.filename, verbose=args.verbose)
+    auto_sub.generate_subtitles()
 
 elif args.cleanup:
-  files = glob.glob('/tmp/.*')
-  for f in files:
-      os.remove(f)
+    files = glob.glob('tmp/*')
+    for file in files:
+        if os.path.isfile(file):
+            os.remove(file)
+        else:
+            shutil.rmtree(file)
 
 elif args.languages:
-  show_suported_languages()
+    show_suported_languages()
 
 elif args.has_lang:
-  show_suported_languages(args.has_lang)
+    show_suported_languages(args.has_lang)
 
 else:
-  print('Unknown params, please try again. Check -h for help.')
+    print('Unknown params, please try again. Check -h for help.')
