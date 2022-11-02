@@ -29,7 +29,7 @@ python main.py --cleanup
 Here I'm separating the to-do list that still need work on
 
 Fixes
-- Improve the voice recognize
+- Improve the voice recognize (currently the precision is just around 50%)
 - Small texts for a very fast time instead showing a whole sentence for few seconds
 - Huge texts at once for long time instead showing slowly parts of text in small times
 
@@ -46,4 +46,4 @@ You can contribue with this project, just fork it, make a branch and open a PR.
 
 ## License
 
-This project is licensed under the GNU License - see the [LICENSE](LICENSE) file for details
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details
